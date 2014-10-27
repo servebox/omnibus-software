@@ -24,6 +24,11 @@ relative_path "yaml-#{version}"
 
 build do
   env = with_standard_compiler_flags(with_embedded_path)
+  if solaris2?
+    # this override is due to a bug in libtool documented here:
+    # http://lists.gnu.org/archive/html/bug-libtool/2005-10/msg00004.html
+    env['CC'] = "gcc -static-libcc"
+  end
 
   command "./configure --prefix=#{install_dir}/embedded", env: env
 
