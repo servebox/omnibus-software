@@ -27,7 +27,7 @@ build do
   if solaris2?
     # this override is due to a bug in libtool documented here:
     # http://lists.gnu.org/archive/html/bug-libtool/2005-10/msg00004.html
-    env['CC'] = "gcc -static-libcc"
+    env['CC'] = "gcc -static-libgcc"
   end
 
   command "./configure --prefix=#{install_dir}/embedded", env: env
