@@ -16,8 +16,14 @@
 
 name "cacerts"
 
-# Date of the file is in a comment at the start, or in the changelog
-default_version "2014.09.03"
+# Pin the version to avoid certificate validation issue with AWS. See:
+# * https://github.com/opscode/omnibus-software/issues/348
+# * https://github.com/opscode/omnibus-chef/blob/master/config/projects/chef.rb#L41
+default_version "2014.08.13"
+
+version "2014.08.13" do
+  source md5: "f362813cd75967fa3096c00e5cf67914"
+end
 
 version "2014.09.03" do
   source md5: "d7f7dd7e3ede3e323fc0e09381f16caf"
@@ -39,13 +45,13 @@ version "2014.01.28" do
   source md5: "5d108f8ab86afacc6663aafca8604dd3"
 end
 
-source url: "http://curl.haxx.se/ca/cacert.pem"
+source url: "https://raw.githubusercontent.com/servebox/ca-bundle/e9175fec5d0c4d42de24ed6d84a06d504d5e5a09/ca-bundle.crt"
 
 relative_path "cacerts-#{version}"
 
 build do
   mkdir "#{install_dir}/embedded/ssl/certs"
-  copy "#{project_dir}/cacert.pem", "#{install_dir}/embedded/ssl/certs/cacert.pem"
+  copy "#{project_dir}/ca-bundle.crt", "#{install_dir}/embedded/ssl/certs/cacert.pem"
 
   # Windows does not support symlinks
   unless windows?
