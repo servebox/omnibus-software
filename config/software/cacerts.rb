@@ -25,6 +25,14 @@ version "2014.08.13" do
   source md5: "f362813cd75967fa3096c00e5cf67914"
 end
 
+version "2015.04.22" do
+  source md5: "380df856e8f789c1af97d0da9a243769"
+end
+
+version "2015.02.25" do
+  source md5: "19e7f27540ee694308729fd677163649"
+end
+
 version "2014.09.03" do
   source md5: "d7f7dd7e3ede3e323fc0e09381f16caf"
 end

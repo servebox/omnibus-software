@@ -25,13 +25,27 @@ relative_path "perl-#{version}"
 build do
   env = with_standard_compiler_flags(with_embedded_path)
 
-  command "sh Configure" \
-          " -de" \
-          " -Dprefix=#{install_dir}/embedded" \
-          " -Duseshrplib" \
-          " -Dusethreads" \
-          " -Dnoextensions='DB_File GDBM_File NDBM_File ODBM_File'", env: env
+  solaris_mapfile_path = File.expand_path(Omnibus::Config.solaris_linker_mapfile, Omnibus::Config.project_root)
+  if solaris2? && File.exist?(solaris_mapfile_path)
+    cc_command = "-Dcc='gcc -static-libgcc -Wl,-M #{solaris_mapfile_path}"
+  elsif aix?
+    cc_command = "-Dcc='/opt/IBM/xlc/13.1.0/bin/cc_r -q64'"
+  else
+    cc_command = "-Dcc='gcc -static-libgcc'"
+  end
 
+  configure_command = ["sh Configure",
+                       " -de",
+                       " -Dprefix=#{install_dir}/embedded",
+                       " -Duseshrplib",
+                       " -Dusethreads",
+                       " -Duse64bitall",
+                       " #{cc_command}",
+                       " -Dnoextensions='DB_File GDBM_File NDBM_File ODBM_File'"]
+
+  configure_command << "-Dmake=gmake" if aix?
+
+  command configure_command.join(" "), env: env
   make "-j #{workers}", env: env
   make "install", env: env
 end

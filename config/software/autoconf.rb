@@ -17,6 +17,8 @@
 name "autoconf"
 default_version "2.68"
 
+dependency "m4"
+
 source url: "http://ftp.gnu.org/gnu/autoconf/autoconf-#{version}.tar.gz",
        md5: "c3b5247592ce694f7097873aa07d66fe"
 
@@ -24,6 +26,10 @@ relative_path "autoconf-#{version}"
 
 build do
   env = with_standard_compiler_flags(with_embedded_path)
+
+  if solaris2?
+    env['M4'] = "#{install_dir}/embedded/bin/m4"
+  end
 
   command "./configure" \
           " --prefix=#{install_dir}/embedded", env: env

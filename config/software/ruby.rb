@@ -25,17 +25,20 @@ dependency "libyaml"
 dependency "libiconv"
 dependency "libffi"
 dependency "gdbm"
+dependency "patch" if solaris2?
 
 version("1.9.3-p484") { source md5: "8ac0dee72fe12d75c8b2d0ef5d0c2968" }
 version("1.9.3-p547") { source md5: "7531f9b1b35b16f3eb3d7bea786babfd" }
 version("1.9.3-p550") { source md5: "e05135be8f109b2845229c4f47f980fd" }
 version("2.0.0-p576") { source md5: "2e1f4355981b754d92f7e2cc456f843d" }
 version("2.0.0-p594") { source md5: "a9caa406da5d72f190e28344e747ee74" }
+version("2.0.0-p645") { source md5: "49919bba0c855eaf8e247108c7933a62" }
 version("2.1.1")      { source md5: "e57fdbb8ed56e70c43f39c79da1654b2" }
 version("2.1.2")      { source md5: "a5b5c83565f8bd954ee522bd287d2ca1" }
 version("2.1.3")      { source md5: "74a37b9ad90e4ea63c0eed32b9d5b18f" }
 version("2.1.4")      { source md5: "89b2f4a197621346f6724a3c35535b19" }
 version("2.1.5")      { source md5: "df4c1b23f624a50513c7a78cb51a13dc" }
+version("2.1.6")      { source md5: "6e5564364be085c45576787b48eeb75f" }
 
 source url: "http://cache.ruby-lang.org/pub/ruby/#{version.match(/^(\d+\.\d+)/)[0]}/ruby-#{version}.tar.gz"
 
@@ -72,13 +75,43 @@ when "aix"
   env['SOLIBS'] = "-lm -lc"
   # need to use GNU m4, default m4 doesn't work
   env['M4'] = "/opt/freeware/bin/m4"
-else  # including solaris, linux
+when "solaris2"
+  if ohai['kernel']['machine'].include?('sun4')
+    # Known issue with rubby where too much GCC optimization blows up miniruby on sparc
+    env['CFLAGS'] << " -std=c99 -O0 -g -pipe -mcpu=v9"
+    env['LDFLAGS'] << " -mcpu=v9"
+  else
+    env['CFLAGS'] << " -std=c99 -O3 -g -pipe"
+  end
+else  # including linux
   env['CFLAGS'] << " -O3 -g -pipe"
 end
 
 build do
   if solaris2? && version.to_f >= 2.1
     patch source: "ruby-solaris-no-stack-protector.patch", plevel: 1
+    if ohai['platform_version'].to_f >= 5.11
+      patch source: "ruby-solaris-linux-socket-compat.patch", plevel: 1
+    end
+  elsif solaris2? && version =~ /^1.9/
+    patch source: "ruby-sparc-1.9.3-c99.patch", plevel: 1
+  end
+
+  # AIX needs /opt/freeware/bin only for patch
+  patch_env = env.dup
+  patch_env['PATH'] = "/opt/freeware/bin:#{env['PATH']}" if aix?
+
+  # disable libpath in mkmf across all platforms, it trolls omnibus and
+  # breaks the postgresql cookbook.  i'm not sure why ruby authors decided
+  # this was a good idea, but it breaks our use case hard.  AIX cannot even
+  # compile without removing it, and it breaks some native gem installs on
+  # other platforms.  generally you need to have a condition where the
+  # embedded and non-embedded libs get into a fight (libiconv, openssl, etc)
+  # and ruby trying to set LD_LIBRARY_PATH itself gets it wrong.
+  if version.to_f >= 2.1
+    patch source: "ruby_aix_2_1_3_mkmf.patch", plevel: 1, env: patch_env
+    # should intentionally break and fail to apply on 2.2, patch will need to
+    # be fixed.
   end
 
   configure_command = ["./configure",
@@ -93,9 +126,6 @@ build do
 
   case ohai['platform']
   when "aix"
-    patch_env = env.dup
-    patch_env['PATH'] = "/opt/freeware/bin:#{env['PATH']}"
-
     # need to patch ruby's configure file so it knows how to find shared libraries
     patch source: "ruby-aix-configure.patch", plevel: 1, env: patch_env
     # have ruby use zlib on AIX correctly
@@ -105,9 +135,6 @@ build do
     # the next two patches are because xlc doesn't deal with long vs int types well
     patch source: "ruby-aix-atomic.patch", plevel: 1, env: patch_env
     patch source: "ruby-aix-vm-core.patch", plevel: 1, env: patch_env
-
-    # This will totally break if you're not using the right version of ruby
-    patch source: "ruby_aix_2_1_3_mkmf.patch", plevel: 1, env: patch_env
 
     # per IBM, just help ruby along on what it's running on
     configure_command << "--host=powerpc-ibm-aix6.1.0.0 --target=powerpc-ibm-aix6.1.0.0 --build=powerpc-ibm-aix6.1.0.0 --enable-pthread"
