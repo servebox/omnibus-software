@@ -134,10 +134,10 @@ build do
                                    "./Configure linux-ppc64"
                                  elsif ohai["os"] == "linux" && ohai["kernel"]["machine"] == "s390x"
                                    "./Configure linux64-s390x"
-                                 elsif `getconf LONG_BIT` == "64"
-                                   "./Configure linux-x86_64"
-                                 else 
+                                 elsif `getconf LONG_BIT`.include? "32"
                                    "./Configure linux-generic32"
+                                 else 
+                                   "./Configure linux-x86_64"
                                  end
                         [config,
                         common_args,
