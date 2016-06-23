@@ -15,9 +15,12 @@
 #
 
 name "dep-selector-libgecode"
-default_version "1.0.2"
+default_version "1.2.0"
 
-dependency "bundler"
+license "Apache-2.0"
+license_file "https://github.com/chef/dep-selector-libgecode/blob/master/LICENSE.txt"
+
+dependency "rubygems"
 
 build do
   env = with_standard_compiler_flags(with_embedded_path)
@@ -33,6 +36,7 @@ build do
 
   # Ruby DevKit ships with BSD Tar
   env["PROG_TAR"] = "bsdtar" if windows?
+  env["ARFLAGS"] = "rv #{env["ARFLAGS"]}" if env["ARFLAGS"]
 
   gem "install dep-selector-libgecode" \
       " --version '#{version}'" \
